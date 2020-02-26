@@ -5,84 +5,121 @@
 		<meta charset="UTF-8">
 		<title></title>
 	</head>
+	<style>
+		#previewImg {
+			background-color: black;
+			width: 400px;
+			height: 400px;
+			display: table-cell;
+			vertical-align: middle;
+			text-align: center;
+		}
+		
+		#previewImg img {
+			max-height: 100%;
+			max-width: 100%;
+		}
+		
+		#upLoad {
+			margin-bottom: 20px;
+		}
+	</style>
+		<script src="../plugin/jquery-3.4.1.js"></script>
 
 	<body>
-		<input id="file" type="file">
+
+		<input type="file" id="upLoad" name="image">
+		<!-- 显示上传之后的图片 -->
+		<div id='previewImg'>
+			<img src="" id='viewImg' />
+		</div>
 
 		<script>
-			var eleFile = document.querySelector('#file');
+			$(function() {
+				$('#upLoad').on('change', function() {
+					var filePath = $(this).val(), //获取到input的value，里面是文件的路径
+						fileFormat = filePath.substring(filePath.lastIndexOf(".")).toLowerCase(),
+						imgBase64 = '', //存储图片的imgBase64
+						fileObj = document.getElementById('upLoad').files[0]; //上传文件的对象,要这样写才行，用jquery写法获取不到对象
 
-			// 压缩图片需要的一些元素和对象
-			var reader = new FileReader();
-
-			// 选择的文件对象
-			var file = null;
-
-			// 缩放图片需要的canvas
-			var canvas = document.createElement('canvas');
-			var context = canvas.getContext('2d');
-
-			// 文件base64化，以便获知图片原始尺寸
-			reader.onload = function(e) {
-				debugger
-				var img = new Image()
-				img.src = e.target.result;
-				// base64地址图片加载完毕后
-				img.onload = function() {
-					console.log("loader");
-					// 图片原始尺寸
-					var originWidth = this.width;
-					var originHeight = this.height;
-					// 最大尺寸限制
-					var maxWidth = 400,
-						maxHeight = 400;
-					// 目标尺寸
-					var targetWidth = originWidth,
-						targetHeight = originHeight;
-					// 图片尺寸超过400x400的限制
-					if(originWidth > maxWidth || originHeight > maxHeight) {
-						if(originWidth / originHeight > maxWidth / maxHeight) {
-							// 更宽，按照宽度限定尺寸
-							targetWidth = maxWidth;
-							targetHeight = Math.round(maxWidth * (originHeight / originWidth));
-						} else {
-							targetHeight = maxHeight;
-							targetWidth = Math.round(maxHeight * (originWidth / originHeight));
-						}
+					// 检查是否是图片
+					if(!fileFormat.match(/.png|.jpg|.jpeg/)) {
+						alert('上传错误,文件格式必须为：png/jpg/jpeg');
+						return;
 					}
 
-					// canvas对图片进行缩放
-					canvas.width = targetWidth;
-					canvas.height = targetHeight;
-					// 清除画布
-					context.clearRect(0, 0, targetWidth, targetHeight);
-					// 图片压缩
-					context.drawImage(img, 0, 0, targetWidth, targetHeight);
-					// canvas转为blob并上传
-					//				canvas.toBlob(function(blob) {
-					//					// 图片ajax上传
-					//					var xhr = new XMLHttpRequest();
-					//					// 文件上传成功
-					//					xhr.onreadystatechange = function() {
-					//						if(xhr.status == 200) {
-					//							// xhr.responseText就是返回的数据
-					//						}
-					//					};
-					//					// 开始上传
-					//					xhr.open("POST", 'upload.php', true);
-					//					xhr.send(blob);
-					//				}, file.type || 'image/png');
-				};
-			};
+					// 调用函数，对图片进行压缩
+					compress(fileObj, function(imgBase64) {
+						imgBase64 = imgBase64; //存储转换的base64编码
+						$('#viewImg').attr('src', imgBase64); //显示预览图片
+					});
+				});
 
-			eleFile.addEventListener('change', function(event) {
-				file = event.target.files[0];
-				// 选择的文件是图片
-				if(file.type.indexOf("image") == 0) {
-					reader.readAsDataURL(file);
+				// 不对图片进行压缩，直接转成base64
+				function directTurnIntoBase64(fileObj, callback) {
+					var r = new FileReader();
+					// 转成base64
+					r.onload = function() {
+						//变成字符串
+						imgBase64 = r.result;
+						console.log(imgBase64);
+						callback(imgBase64);
+					}
+					r.readAsDataURL(fileObj); //转成Base64格式
+				}
+
+				// 对图片进行压缩
+				function compress(fileObj, callback) {
+					if(typeof(FileReader) === 'undefined') {
+						console.log("当前浏览器内核不支持base64图标压缩");
+						//调用上传方式不压缩  
+						directTurnIntoBase64(fileObj, callback);
+					} else {
+						try {
+							var reader = new FileReader();
+							reader.onload = function(e) {
+								var image = $('<img/>');
+								image.load(function() {
+									square = 700, //定义画布的大小，也就是图片压缩之后的像素
+										canvas = document.createElement('canvas'),
+										context = canvas.getContext('2d'),
+										imageWidth = 0, //压缩图片的大小
+										imageHeight = 0,
+										offsetX = 0,
+										offsetY = 0,
+										data = '';
+
+									canvas.width = square;
+									canvas.height = square;
+									context.clearRect(0, 0, square, square);
+
+									if(this.width > this.height) {
+										imageWidth = Math.round(square * this.width / this.height);
+										imageHeight = square;
+										offsetX = -Math.round((imageWidth - square) / 2);
+									} else {
+										imageHeight = Math.round(square * this.height / this.width);
+										imageWidth = square;
+										offsetY = -Math.round((imageHeight - square) / 2);
+									}
+									context.drawImage(this, offsetX, offsetY, imageWidth, imageHeight);
+									var data = canvas.toDataURL('image/jpeg');
+									//压缩完成执行回调  
+									callback(data);
+								});
+								image.attr('src', e.target.result);
+							};
+							reader.readAsDataURL(fileObj);
+						} catch(e) {
+							console.log("压缩失败!");
+							//调用直接上传方式  不压缩 
+							directTurnIntoBase64(fileObj, callback);
+						}
+					}
 				}
 			});
 		</script>
+		
 	</body>
 
 </html>

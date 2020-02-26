@@ -15,6 +15,8 @@
 		<script type="text/javascript" src="../plugin/jquery-3.4.1.js"></script>
 		<script type="text/javascript" src="../plugin/FBXLoader.js"></script>
 		<script type="text/javascript" src="../plugin/Loader.js"></script>
+		<script type="text/javascript" src="../plugin/imagecompress/base64image.js"></script>
+		<script type="text/javascript" src="../plugin/imagecompress/exif.js"></script>
 
 	</head>
 
@@ -23,22 +25,18 @@
 			<button class="info-item" onclick="Reset()">新建</button>
 			<input type="file" id="mxh" onchange="GetFbxPath()">
 
-			<input type="file" accept="image/*" name="file" id="result" multiple="multiple" value="get" onchange="GetMaterial()"/>
-
-
+			<!--<input type="file" accept="image/*" name="file" id="result" multiple="multiple" value="get" onchange="FFF()" />-->
+			<input type="file" accept="image/*" name="file" id="result" onchange="GetMaterial(this)" multiple="multiple" value="get" />
+			<!--<button class="info-item" onclick="FFF()">加载</button>-->
 			<button class="info-item" onclick="ModeltoJson()">导出</button>
-			<!--<img id="img" src="../image/picture.jpg">-->
 
 		</div>
-		
 		<div id="threejsContainer" style="background: gainsboro;">
 
 		</div>
-		
-		<!--<div id="cv" style="position: absolute;"></div>-->
 
 		<script>
-			var container, stats, controls;
+			var container, controls;
 			var camera, scene, renderer, light;
 			var endStr = "VRayCompleteMap";
 			var editor = new Editor();
@@ -92,62 +90,35 @@
 				controls = new THREE.OrbitControls(camera, renderer.domElement);
 				controls.target.set(0, 100, 0);
 				controls.update();
-				stats = new Stats();
-				container.appendChild(stats.dom);
 
 				document.getElementById("threejsContainer").appendChild(renderer.domElement);
 				window.addEventListener('resize', onWindowResize, false);
 			}
 
+			//设置模型。将材质与材质名称绑定
 			function addObject(object) {
 				object.traverse(function(child) {            
 					if(child instanceof THREE.Mesh) {
 						console.log(child.material.name);
-						map.set(child.name, child.material.name.replace(/[^0-9]/ig,""));
-
+						map.set(child.name, child.material.name.replace(/[^0-9]/ig, ""));
 						child.material = new THREE.MeshBasicMaterial({
 							map: new THREE.TextureLoader().load("../image/timg.jpg"),
 							side: THREE.DoubleSide,
 						});       
 
 					}  
-
-					//					if(child.geometry !== undefined) addGeometry(child.geometry);
-					//					if(child.material !== undefined) addMaterial(child.material);
-
-					//					addCamera(child);
 				});
 				model = object;
 			}
 
+			//重置模型
 			function Reset() {
 				scene.remove(model);
 				model = null;
 				map.clear();
 			}
 
-			function addGeometry(geometry) {
-				geometries[geometry.uuid] = geometry;
-
-			}
-
-			function addMaterial(material) {
-				console.log(material);
-				materials[material.uuid] = material;
-			}
-
-			function addCamera(camera) {
-
-				if(camera.isCamera) {
-
-					cameras[camera.uuid] = camera;
-
-					signals.cameraAdded.dispatch(camera);
-
-				}
-
-			}
-
+			//模型转化为Json
 			function ModeltoJson() {
 				var output = model.toJSON();
 				try {
@@ -196,7 +167,7 @@
 			}
 
 			function GetFbxPath() {
-				if(model != undefined && model != null){
+				if(model != undefined && model != null) {
 					scene.remove(model);
 					model = null;
 				}
@@ -205,73 +176,49 @@
 
 			}
 
+			//将图片赋予材质
 			function GetMaterial() {
 				var result = document.getElementById("result");
 				var obj = document.getElementById("result").files;
 
 				for(var i = 0; i < obj.length; i++) {
-					LoadImage(obj[i], obj[i].name);
+					fileUp(obj[i], obj[i].name);
 				}
 			}
-			var loadimage = new Image();
-			var canvas = document.createElement('canvas');
-			
-			var context = canvas.getContext('2d');
 
-			function LoadImage(file, filename) {
-				var reader = new FileReader();
-				reader.addEventListener('load', function(event) {
-//					//设置image的src参数
-					loadimage.src = event.target.result;
-//					
-//					//执行image.onload的回调函数
-//					loadimage.οnlοad = function() {
-//						console.log("****");
-//
-//						var canvas = document.createElement('canvas');
-//
-//						var context = canvas.getContext('2d');
-//
-//						//设置canvas的长宽
-//
-//						canvas.width = 512;
-//
-//						canvas.height = 512;
-//
-//						//进行绘制
-//
-//						context.drawImage(loadimage, 0, 0, canvas.width, canvas.width);
-//
-//						//提取最后的base64字符串
-//
-//						var img = canvas.toDataURL("image/png", 0.9);
-////						loadimage.src = img;
-//						console.log(img)
-//					}
-					
-//					$("#img").attr("src",newUrl);
-					model.traverse(function(child) {            
-						if(child instanceof THREE.Mesh) {
-							if(filename.indexOf(map.get(child.name)) != -1) {
-//								console.log(filename + "," + map.get(child.name));
-								child.material.map.image.src = event.target.result;
-								child.material.map.needsUpdate = true; 
-							}
+			//压缩图片
+			var fileUp = function(file, filename) {
+				var result = document.getElementById("result");
+				var obj = document.getElementById("result").files;
+				var name = obj[0].name;
+				base64Image({
+					width: 512,
+					/*【选填】宽度默认750，如果图片尺寸大于该宽度，图片将被设置为该宽度*/
+					ratio: 0.75,
+					/*【选填】压缩率默认0.75 */
+					file: file,
+					/*【必填】对应的上传元素 */
+					callback: function(imageUrl) { /*【必填】处理成功后的回调函数 */
+						/*imageUrl为得到的图片base64数据，这里可以进行上传到服务器或者其他逻辑操作 */
+						var img = new Image();
+						img.src = imageUrl;
+						model.traverse(function(child) {            
+							if(child instanceof THREE.Mesh) {
+								if(filename.indexOf(map.get(child.name)) != -1) {
+									child.material.map.image.src = img.src;
+									child.material.map.needsUpdate = true; 
+								}
 
-						}  
-
-					});
-
-				}, false);
-
-				reader.readAsDataURL(file);
-
-		}
+							}  
+						});
+						//                  document.getElementById("image-list").appendChild(img);
+					},
+				});
+			};
 
 			function animate() {
 
 				requestAnimationFrame(animate);
-				stats.update();
 				renderer.render(scene, camera);
 			}
 		</script>
