@@ -1,0 +1,39 @@
+body{
+	height: 100%;
+	width: 100%;
+}
+
+#info{
+	display: flex;
+	flex-direction: column;
+	width: 400px;
+	height: 500px;	
+	position: absolute;
+}
+.info-item{
+	display: flex;
+	height: 22px;
+	width: 64px;
+	justify-content: center;
+	align-items: center;
+	font-size: 12px;
+	margin-top: 10px;
+	
+}
+
+input[type=file]{
+	font-size: 12px;
+	margin-top: 10px;
+}
+
+#info div{
+	width: 400px;
+	height: 80px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	/*background: greenyellow;*/
+}
+
+
+

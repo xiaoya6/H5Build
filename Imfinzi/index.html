@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+
+	<head>
+		<title>three.js webgl - FBX loader</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="../css/mainLoad.css">
+
+		<script type="text/javascript" src="../plugin/three.js"></script>
+		<script type="text/javascript" src="../plugin/stats.min.js"></script>
+		<script type="text/javascript" src="../plugin/OrbitControls.js"></script>
+		<script type="text/javascript" src="../plugin/inflate.min.js"></script>
+		<script type="text/javascript" src="../plugin/Editor.js"></script>
+		<script type="text/javascript" src="../plugin/jquery-3.4.1.js"></script>
+		<script type="text/javascript" src="../plugin/FBXLoader.js"></script>
+		<script type="text/javascript" src="../plugin/Loader.js"></script>
+
+	</head>
+
+	<body>
+		<div id="info">
+			<button class="info-item" onclick="Reset()">新建</button>
+			<input type="file" id="mxh" onchange="GetFbxPath()">
+
+			<input type="file" accept="image/*" name="file" id="result" multiple="multiple" value="get" onchange="GetMaterial()"/>
+
+
+			<button class="info-item" onclick="ModeltoJson()">导出</button>
+			<!--<img id="img" src="../image/picture.jpg">-->
+
+		</div>
+		
+		<div id="threejsContainer" style="background: gainsboro;">
+
+		</div>
+		
+		<!--<div id="cv" style="position: absolute;"></div>-->
+
+		<script>
+			var container, stats, controls;
+			var camera, scene, renderer, light;
+			var endStr = "VRayCompleteMap";
+			var editor = new Editor();
+			object = {};
+			geometries = {};
+			materials = {};
+			textures = {};
+			scripts = {};
+			animations = {};
+			helpers = {};
+
+			cameras = {};
+			viewportCamera = this.camera;
+			init();
+			animate();
+			var map = new Map();
+
+			var model;
+			var materialslist;
+
+			function init() {
+				//				console.log(filename.substring(0,filename.length-4));
+				var canHeight = window.innerHeight;
+				var canWidth = window.innerWidth;
+				container = document.createElement('div');
+
+				camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
+				camera.position.set(0, 300, 300);
+				scene = new THREE.Scene();
+
+				// grid
+				var gridHelper = new THREE.GridHelper(28, 28, 0x303030, 0x303030);
+				gridHelper.position.set(0, -0.04, 0);
+				gridHelper.scale.y = 5;
+				gridHelper.scale.x = 5;
+				gridHelper.scale.z = 5;
+
+				scene.add(gridHelper);
+
+				renderer = new THREE.WebGLRenderer({
+					antialias: true,
+					alpha: true
+
+				});
+
+				renderer.setPixelRatio(window.devicePixelRatio);
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				renderer.shadowMap.enabled = true;
+				container.appendChild(renderer.domElement);
+
+				controls = new THREE.OrbitControls(camera, renderer.domElement);
+				controls.target.set(0, 100, 0);
+				controls.update();
+				stats = new Stats();
+				container.appendChild(stats.dom);
+
+				document.getElementById("threejsContainer").appendChild(renderer.domElement);
+				window.addEventListener('resize', onWindowResize, false);
+			}
+
+			function addObject(object) {
+				object.traverse(function(child) {            
+					if(child instanceof THREE.Mesh) {
+						console.log(child.material.name);
+						map.set(child.name, child.material.name.replace(/[^0-9]/ig,""));
+
+						child.material = new THREE.MeshBasicMaterial({
+							map: new THREE.TextureLoader().load("../image/timg.jpg"),
+							side: THREE.DoubleSide,
+						});       
+
+					}  
+
+					//					if(child.geometry !== undefined) addGeometry(child.geometry);
+					//					if(child.material !== undefined) addMaterial(child.material);
+
+					//					addCamera(child);
+				});
+				model = object;
+			}
+
+			function Reset() {
+				scene.remove(model);
+				model = null;
+				map.clear();
+			}
+
+			function addGeometry(geometry) {
+				geometries[geometry.uuid] = geometry;
+
+			}
+
+			function addMaterial(material) {
+				console.log(material);
+				materials[material.uuid] = material;
+			}
+
+			function addCamera(camera) {
+
+				if(camera.isCamera) {
+
+					cameras[camera.uuid] = camera;
+
+					signals.cameraAdded.dispatch(camera);
+
+				}
+
+			}
+
+			function ModeltoJson() {
+				var output = model.toJSON();
+				try {
+
+					output = JSON.stringify(output, parseNumber, '\t');
+					output = output.replace(/[\n\t]+([\d\.e\-\[\]]+)/g, '$1');
+
+				} catch(e) {
+
+					output = JSON.stringify(output);
+				}
+				var filename = document.all.mxh.files[0].name
+
+				saveString(output, filename.substring(0, filename.length - 4) + ".json");
+			}
+
+			var NUMBER_PRECISION = 6;
+
+			function parseNumber(key, value) {
+
+				return typeof value === 'number' ? parseFloat(value.toFixed(NUMBER_PRECISION)) : value;
+			}
+
+			function saveString(text, filename) {
+				console.log("filename:" + filename);
+				save(new Blob([text], {
+					type: 'text/plain'
+				}), filename);
+
+			}
+
+			var link = document.createElement('a');
+			link.style.display = 'none';
+			document.body.appendChild(link); // Firefox workaround, see #6594
+
+			function save(blob, filename) {
+				link.href = URL.createObjectURL(blob);
+				link.download = filename || 'data.json';
+				link.click();
+			}
+
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize(window.innerWidth, window.innerHeight);
+			}
+
+			function GetFbxPath() {
+				if(model != undefined && model != null){
+					scene.remove(model);
+					model = null;
+				}
+				console.log(document.all.mxh.files[0]);
+				editor.loader.loadFile(document.all.mxh.files[0]);
+
+			}
+
+			function GetMaterial() {
+				var result = document.getElementById("result");
+				var obj = document.getElementById("result").files;
+
+				for(var i = 0; i < obj.length; i++) {
+					LoadImage(obj[i], obj[i].name);
+				}
+			}
+			var loadimage = new Image();
+			var canvas = document.createElement('canvas');
+			
+			var context = canvas.getContext('2d');
+
+			function LoadImage(file, filename) {
+				var reader = new FileReader();
+				reader.addEventListener('load', function(event) {
+//					//设置image的src参数
+					loadimage.src = event.target.result;
+//					
+//					//执行image.onload的回调函数
+//					loadimage.οnlοad = function() {
+//						console.log("****");
+//
+//						var canvas = document.createElement('canvas');
+//
+//						var context = canvas.getContext('2d');
+//
+//						//设置canvas的长宽
+//
+//						canvas.width = 512;
+//
+//						canvas.height = 512;
+//
+//						//进行绘制
+//
+//						context.drawImage(loadimage, 0, 0, canvas.width, canvas.width);
+//
+//						//提取最后的base64字符串
+//
+//						var img = canvas.toDataURL("image/png", 0.9);
+////						loadimage.src = img;
+//						console.log(img)
+//					}
+					
+//					$("#img").attr("src",newUrl);
+					model.traverse(function(child) {            
+						if(child instanceof THREE.Mesh) {
+							if(filename.indexOf(map.get(child.name)) != -1) {
+//								console.log(filename + "," + map.get(child.name));
+								child.material.map.image.src = event.target.result;
+								child.material.map.needsUpdate = true; 
+							}
+
+						}  
+
+					});
+
+				}, false);
+
+				reader.readAsDataURL(file);
+
+		}
+
+			function animate() {
+
+				requestAnimationFrame(animate);
+				stats.update();
+				renderer.render(scene, camera);
+			}
+		</script>
+		<script type="text/javascript" src="../plugin/jquery-3.4.1.js"></script>
+		<script type="text/javascript" src="../plugin/jquery-3.4.1.min.js"></script>
+
+	</body>
+
+</html>

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+
+	<head>
+		<title>three.js webgl - FBX loader</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="../css/mainLoad.css">
+
+		<script type="text/javascript" src="../plugin/three.js"></script>
+		<script type="text/javascript" src="../plugin/stats.min.js"></script>
+		<script type="text/javascript" src="../plugin/OrbitControls.js"></script>
+		<script type="text/javascript" src="../plugin/inflate.min.js"></script>
+		<script type="text/javascript" src="../plugin/Editor.js"></script>
+
+		<script type="text/javascript" src="../plugin/FBXLoader.js"></script>
+		<!--<script type="text/javascript" src="../plugin/Command.js"></script>
+		<script type="text/javascript" src="../plugin/AddObjectCommand.js"></script>-->
+		<script type="text/javascript" src="../plugin/Loader.js"></script>
+
+	</head>
+
+	<body>
+		<div id="info">
+			<div style="width: 100px;height: 100px;">
+				<button style="width: 100%;height: 100%;" onclick="GetMaterial()">点我</button>
+			</div>
+			<input type=file id="mxh">
+			<input type=button onclick="GetFbxPath()" value="get">
+			<input type="file" name="file" id="result" multiple="multiple" />
+		</div>
+		<div id="threejsContainer">
+
+		</div>
+
+		<script>
+			var container, stats, controls;
+			var camera, scene, renderer, light;
+			var endStr = "VRayCompleteMap";
+			var editor = new Editor();
+			object = {};
+			geometries = {};
+			materials = {};
+			textures = {};
+			scripts = {};
+
+			animations = {};
+			helpers = {};
+
+			cameras = {};
+			viewportCamera = this.camera;
+			init();
+			animate();
+			var model;
+			var materialslist;
+			function init() {
+				var canHeight = window.innerHeight;
+				var canWidth = window.innerWidth;
+				container = document.createElement('div');
+
+				camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
+				camera.position.set(2, 18, 28);
+				scene = new THREE.Scene();
+				// model
+								var loader = new THREE.FBXLoader();
+								loader.load('../model/421618_421620_421593_C/FBX/H5/421618_421620_421593.fbx', function(object) {  
+				
+									object.traverse(function(child) {            
+										if(child instanceof THREE.Mesh) {
+											console.log(child.material.name);
+											child.material = new THREE.MeshBasicMaterial({
+												map: new THREE.TextureLoader().load("../model/421618_421620_421593_C/MAX/H5/" + child.material.name + endStr + ".png"),
+												side: THREE.DoubleSide,
+											});       
+				
+										}  
+										if(child.geometry !== undefined) addGeometry(child.geometry);
+										if(child.material !== undefined) addMaterial(child.material);
+				
+										addCamera(child);
+										//						addHelper(child);       
+									});
+				
+									scene.add(object);
+								});
+
+				//var object = loader.parse( contents );
+
+				renderer = new THREE.WebGLRenderer({
+					antialias: true,
+					alpha: true
+				});
+
+				renderer.setPixelRatio(window.devicePixelRatio);
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				renderer.shadowMap.enabled = true;
+				container.appendChild(renderer.domElement);
+
+				controls = new THREE.OrbitControls(camera, renderer.domElement);
+				controls.target.set(0, 100, 0);
+				controls.update();
+				stats = new Stats();
+				container.appendChild(stats.dom);
+
+				document.getElementById("threejsContainer").appendChild(renderer.domElement);
+
+				window.addEventListener('resize', onWindowResize, false);
+			}
+
+			function addObject(object, file) {
+				object.traverse(function(child) {            
+					if(child instanceof THREE.Mesh) {
+						child.material = new THREE.MeshBasicMaterial({
+							map: new THREE.TextureLoader().load(file),
+							side: THREE.DoubleSide,
+						});       
+
+					}  
+					if(child.geometry !== undefined) addGeometry(child.geometry);
+					if(child.material !== undefined) addMaterial(child.material);
+
+					addCamera(child);
+				});
+			}
+
+			function addGeometry(geometry) {
+				geometries[geometry.uuid] = geometry;
+
+			}
+
+			function addMaterial(material) {
+				console.log(material);
+				materials[material.uuid] = material;
+
+			}
+
+			function addCamera(camera) {
+
+				if(camera.isCamera) {
+
+					cameras[camera.uuid] = camera;
+
+					signals.cameraAdded.dispatch(camera);
+
+				}
+
+			}
+
+			function ModeltoJson() {
+				var output = scene.toJSON();
+				try {
+
+					output = JSON.stringify(output, parseNumber, '\t');
+					output = output.replace(/[\n\t]+([\d\.e\-\[\]]+)/g, '$1');
+
+				} catch(e) {
+
+					output = JSON.stringify(output);
+				}
+
+				saveString(output, 'scene.json');
+			}
+
+			var NUMBER_PRECISION = 6;
+
+			function parseNumber(key, value) {
+
+				return typeof value === 'number' ? parseFloat(value.toFixed(NUMBER_PRECISION)) : value;
+			}
+
+			function saveString(text, filename) {
+
+				save(new Blob([text], {
+					type: 'text/plain'
+				}), filename);
+
+			}
+
+			var link = document.createElement('a');
+			link.style.display = 'none';
+			document.body.appendChild(link); // Firefox workaround, see #6594
+
+			function save(blob, filename) {
+				link.href = URL.createObjectURL(blob);
+				link.download = filename || 'data.json';
+				link.click();
+			}
+
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize(window.innerWidth, window.innerHeight);
+			}
+
+//			function GetFbxPath() {
+//				editor.loader.loadFile(document.all.mxh.files[0]);
+//
+//			}
+			
+			
+			function GetMaterial() {
+				var result = document.getElementById("result");
+				var obj = document.getElementById("result").files;
+				
+				for(var i = 0; i < obj.length; i++) {
+					var reader = new FileReader();
+					reader.readAsDataURL(obj[i]);
+					console.log("uploading: " + obj[i].name);
+					
+					reader.addEventListener('load', function(event) {
+
+						materical.map.image.src = event.target.result;
+						console.log(materical1)
+
+					}, false);
+
+				}
+
+				addObject(model, obj[i]);
+			}
+
+			function animate() {
+
+				requestAnimationFrame(animate);
+				stats.update();
+				renderer.render(scene, camera);
+			}
+		</script>
+		<script type="text/javascript" src="../plugin/jquery-3.4.1.js"></script>
+		<script type="text/javascript" src="../plugin/jquery-3.4.1.min.js"></script>
+
+	</body>
+
+</html>
