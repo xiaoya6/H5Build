@@ -4,8 +4,8 @@ var base64Image = function (param) {
 
     var widthInput = param.width ? param.width : 750;
 
-    var ratioInput = param.ratio ? param.ratio : 0.75;
-
+//  var ratioInput = param.ratio ? param.ratio : 0.75;
+	var ratioInput =  1.5;
     var callback = param.callback ? param.callback : null;
    		
     if (!window.FileReader) {
@@ -64,7 +64,7 @@ var base64Image = function (param) {
                 canvas.height = parseInt(canvas.width / scale);
                 canvas.getContext("2d").drawImage(image, 0, 0, image.width, image.height, 0, 0, canvas.width, canvas.height);
             }
-            var imageUrl = canvas.toDataURL("image/jpeg", ratioInput);
+            var imageUrl = canvas.toDataURL("image/png", ratioInput);
 
             if (callback) {
                 callback(imageUrl)
