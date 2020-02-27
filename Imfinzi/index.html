@@ -24,12 +24,8 @@
 		<div id="info">
 			<button class="info-item" onclick="Reset()">新建</button>
 			<input type="file" id="mxh" onchange="GetFbxPath()">
-
-			<!--<input type="file" accept="image/*" name="file" id="result" multiple="multiple" value="get" onchange="FFF()" />-->
 			<input type="file" accept="image/*" name="file" id="result" onchange="GetMaterial(this)" multiple="multiple" value="get" />
-			<!--<button class="info-item" onclick="FFF()">加载</button>-->
 			<button class="info-item" onclick="ModeltoJson()">导出</button>
-
 		</div>
 		<div id="threejsContainer" style="background: gainsboro;">
 
@@ -58,7 +54,6 @@
 			var materialslist;
 
 			function init() {
-				//				console.log(filename.substring(0,filename.length-4));
 				var canHeight = window.innerHeight;
 				var canWidth = window.innerWidth;
 				container = document.createElement('div');
@@ -171,7 +166,7 @@
 					scene.remove(model);
 					model = null;
 				}
-				console.log(document.all.mxh.files[0]);
+//				console.log(document.all.mxh.files[0]);
 				editor.loader.loadFile(document.all.mxh.files[0]);
 
 			}
@@ -202,6 +197,7 @@
 						/*imageUrl为得到的图片base64数据，这里可以进行上传到服务器或者其他逻辑操作 */
 						var img = new Image();
 						img.src = imageUrl;
+						//对应材质贴图
 						model.traverse(function(child) {            
 							if(child instanceof THREE.Mesh) {
 								if(filename.indexOf(map.get(child.name)) != -1) {
@@ -211,7 +207,6 @@
 
 							}  
 						});
-						//                  document.getElementById("image-list").appendChild(img);
 					},
 				});
 			};

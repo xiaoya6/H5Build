@@ -2,10 +2,10 @@ var base64Image = function (param) {
 
     var fileInput = param.file;
 
-    var widthInput = param.width ? param.width : 750;
+    var widthInput = 512;
 
 //  var ratioInput = param.ratio ? param.ratio : 0.75;
-	var ratioInput =  1.5;
+	var ratioInput =  3;
     var callback = param.callback ? param.callback : null;
    		
     if (!window.FileReader) {
