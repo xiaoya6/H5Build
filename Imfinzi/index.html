@@ -27,6 +27,7 @@
 			<input type="file" accept="image/*" name="file" id="result" onchange="GetMaterial(this)" multiple="multiple" value="get" />
 			<button class="info-item" onclick="ModeltoJson()">导出</button>
 		</div>
+		<div id="maps"></div>
 		<div id="threejsContainer" style="background: gainsboro;">
 
 		</div>
@@ -54,6 +55,7 @@
 			var materialslist;
 
 			function init() {
+				
 				var canHeight = window.innerHeight;
 				var canWidth = window.innerWidth;
 				container = document.createElement('div');
@@ -74,7 +76,6 @@
 				renderer = new THREE.WebGLRenderer({
 					antialias: true,
 					alpha: true
-
 				});
 
 				renderer.setPixelRatio(window.devicePixelRatio);
@@ -99,6 +100,7 @@
 						child.material = new THREE.MeshBasicMaterial({
 							map: new THREE.TextureLoader().load("../image/timg.jpg"),
 							side: THREE.DoubleSide,
+							opacity:1
 						});       
 
 					}  
@@ -110,6 +112,7 @@
 			function Reset() {
 				scene.remove(model);
 				model = null;
+				$("#maps").remove();
 				map.clear();
 			}
 
@@ -138,7 +141,6 @@
 			}
 
 			function saveString(text, filename) {
-				console.log("filename:" + filename);
 				save(new Blob([text], {
 					type: 'text/plain'
 				}), filename);
@@ -166,26 +168,35 @@
 					scene.remove(model);
 					model = null;
 				}
-//				console.log(document.all.mxh.files[0]);
 				editor.loader.loadFile(document.all.mxh.files[0]);
 
 			}
 
 			//将图片赋予材质
 			function GetMaterial() {
+				
 				var result = document.getElementById("result");
 				var obj = document.getElementById("result").files;
-
+				$("#maps").css("height", obj.length * 120 + "px");
 				for(var i = 0; i < obj.length; i++) {
-					fileUp(obj[i], obj[i].name);
+					var html="<div class='divmap' id=mapitem"+i+ " onclick='ppp(" + i + ")' style='background: white; display:flex;justify-content: center;align-items: center; height: 100px;width: 100px;'><img id=map" + i + "></div>"
+					
+					$("#maps").append(html);
+					$("#mapitem" + i).css("width", "100px");
+					$("#mapitem" + i).css("height", "100px");
+					$("#map" + i).css("margin-top", "10px");
+					$("#map" + i).css("width", "80px");
+					$("#map" + i).css("height", "80px");
+
+					fileUp(obj[i], obj[i].name, i);
+					
 				}
 			}
 
 			//压缩图片
-			var fileUp = function(file, filename) {
+			var fileUp = function(file, filename, i) {
 				var result = document.getElementById("result");
 				var obj = document.getElementById("result").files;
-				var name = obj[0].name;
 				base64Image({
 					width: 512,
 					/*【选填】宽度默认750，如果图片尺寸大于该宽度，图片将被设置为该宽度*/
@@ -200,9 +211,11 @@
 						//对应材质贴图
 						model.traverse(function(child) {            
 							if(child instanceof THREE.Mesh) {
-								if(filename.indexOf(map.get(child.name)) != -1) {
+								if(filename.indexOf(map.get(child.name)) != -1) {	
+									
 									child.material.map.image.src = img.src;
 									child.material.map.needsUpdate = true; 
+									$("#map" + i).attr("src", imageUrl);
 								}
 
 							}  
@@ -210,6 +223,28 @@
 					},
 				});
 			};
+
+			function ppp(i) {
+				var result = document.getElementById("result");
+				var obj = document.getElementById("result").files;
+				var name = obj[i].name;
+				
+				$("#mask").css("top",i*100+50+"px");
+				model.traverse(function(child) {            
+					if(child instanceof THREE.Mesh) {
+						if(name.indexOf(map.get(child.name)) != -1) {							
+							child.material.transparent = !child.material.transparent; 
+							if(child.material.transparent){
+								$("#mapitem" + i).css("background","#dcdcdc");
+							}else{
+								$("#mapitem" + i).css("background","white");
+							}
+							
+						}
+				
+					}  
+				});
+			}
 
 			function animate() {
 

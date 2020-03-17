@@ -9,7 +9,7 @@ body{
 	padding: 8px;
 	display: flex;
 	flex-direction: column;
-	width: 400px;
+	width: 200px;
 	height: 500px;	
 	position: absolute;
 }
@@ -30,7 +30,7 @@ input[type=file]{
 }
 
 #info div{
-	width: 400px;
+	width: 200px;
 	height: 80px;
 	display: flex;
 	flex-direction: column;
@@ -38,5 +38,15 @@ input[type=file]{
 	/*background: greenyellow;*/
 }
 
+#maps{
+	display: flex;
+	justify-content: space-around;
+	flex-direction: column;
+	position: absolute;
+	z-index: 50px;
+	width: 100px;
+	right:20px;
+	top: 30px;
+}
 
 
